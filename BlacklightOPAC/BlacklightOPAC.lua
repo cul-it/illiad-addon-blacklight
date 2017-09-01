@@ -115,7 +115,8 @@ function SearchTitle()
       .. journalAuthor .. " Volume: " .. journalVolume 
       ..  " Issue: " .. journalIssue 
       ..  " Pages: " .. journalPages; 
-    searchCode = "journal title";
+    searchCode = "title";
+    --searchCode = "journal title";
   end
   searchTerm = stripc(searchTerm,"/:");
   opacForm.Browser:RegisterPageHandler("formExists", "search-form", "OPACLoaded", false);
