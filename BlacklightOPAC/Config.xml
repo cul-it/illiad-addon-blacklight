@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Name>Blacklight OPAC Search</Name>
+  <Author>Nooogon,Inc.</Author>
+  <Version>1.2</Version>
+  <Active>True</Active>
+  <Type>Addon</Type>
+  <Description>Performs a Blacklight OPAC title search with option for a keyword search as well. Once on a results page, Import Info will copy the call number and location values.</Description>
+  <Forms>
+    <Form>FormRequest</Form>
+  </Forms>
+  <Settings>
+    <Setting name="OPACURL" value="http://newcatalog.library.cornell.edu" type="string">
+      <Description>The URL for your Blacklight OPAC. (i.e. http://catalog.princeton.edu)</Description>
+    </Setting>
+  </Settings>
+  <Files>
+    <File>BlacklightOPAC.lua</File>
+  </Files>
+</Configuration>
