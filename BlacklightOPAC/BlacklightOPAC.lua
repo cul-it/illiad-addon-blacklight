@@ -52,6 +52,7 @@ function Init()
   opacForm.TouInfo.Value = "Fill in later"; 
   opacForm.JournalInfo = opacForm.Form:CreateMemoEdit("Journal Info", "JournalInfo");
   processType = GetFieldValue("Transaction", "ProcessType");
+  Log("Blacklight OPAC process type = " .. processType);
   if processType == "Lending" then
     opacForm.Form:LoadLayout("BlacklightOPACLendlayout.xml");
   elseif processType == "Doc Del" then
@@ -178,10 +179,10 @@ function ImportTerms()
   local otext = obrowser.DocumentText;
   local n = 1;
   local matches = {};
-  for w in string.gfind(otext, "/catalog/tou/%d+/%u+/%w+.>Terms") do
+  for w in string.gfind(otext, "/catalog/tou/%d+/%u+/%w+%\">Terms") do
     local term  = {};
     Log("Blacklight OPAC w = " .. w );
-    local id,m1,m2 = string.match(w, "/catalog/tou/(%d+)/(%u+)/(%w+).>Terms")
+    local id,m1,m2 = string.match(w, "/catalog/tou/(%d+)/(%u+)/(%w+)%\">Terms")
     term.id = id;
     term.m1 = m1;
     term.m2 = m2;
@@ -197,8 +198,11 @@ function ImportTerms()
     outstr = outstr .. "\r\n***********************************\n\r"; 
     --outstr = outstr .. "\r\r".. c .. "\n\r"; 
     --outstr = outstr .. "\r\nerr = " .. tostring(err); 
-    local h4 = string.match(response, "<h4(.+)</h4>");
-    local desc = string.match(h4,"<a.*>(.*)</a>");
+    Log("Blacklight OPAC response data: " .. response );
+    local src= string.match(response, "<h3(.+)</h3>.* class=.description.");
+    Log("Blacklight OPAC h4 data: " .. src );
+    local desc = string.match(src,"<a.*>(.*)</a>");
+    Log("Blacklight OPAC response data: " .. desc );
     outstr = outstr .. "\r\nSource:\t" .. desc; 
     local tab = string.match(response, '<table%s+class=".+">(.+)</table>');
     tab = string.gsub(tab,"<tr>","\n\r");
