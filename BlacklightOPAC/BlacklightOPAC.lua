@@ -200,9 +200,9 @@ function ImportTerms()
     --outstr = outstr .. "\r\nerr = " .. tostring(err); 
     Log("Blacklight OPAC response data: " .. response );
     local src= string.match(response, "<h3(.+)</h3>.* class=.description.");
-    Log("Blacklight OPAC h4 data: " .. src );
+    Log("Blacklight OPAC src data: " .. src );
     local desc = string.match(src,"<a.*>(.*)</a>");
-    Log("Blacklight OPAC response data: " .. desc );
+    Log("Blacklight OPAC desc data: " .. desc );
     outstr = outstr .. "\r\nSource:\t" .. desc; 
     local tab = string.match(response, '<table%s+class=".+">(.+)</table>');
     tab = string.gsub(tab,"<tr>","\n\r");
@@ -211,7 +211,9 @@ function ImportTerms()
     tab = string.gsub(tab,"</th>","");
     tab = string.gsub(tab,"<td>","\t");
     tab = string.gsub(tab,"</td>","");
-    tab = string.gsub(tab,"^    ","");
+    tab = string.gsub(tab,"</tbody>","");
+    tab = string.gsub(tab,"</thead>","");
+    tab = string.gsub(tab,"<tbody>","");
     outstr = outstr .. "\r\nLocal Terms of Use: " .. tab; 
 
   end
