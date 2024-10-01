@@ -46,7 +46,8 @@ function Init()
   opacForm.RibbonPage:CreateButton("Search Title",GetClientImage("Search32"),"SearchTitle", "Search");
   opacForm.RibbonPage:CreateButton("Import Info",GetClientImage("ImportData32"),"ImportInfo", "Import");
   opacForm.RibbonPage:CreateButton("Import as E-Resource",GetClientImage("ImportData32"),"ImportElectronic","Import");
-  opacForm.RibbonPage:CreateButton("Import Terms",GetClientImage("ImportData32"),"ImportTerms","Import");
+  Log("No longer loading the Import Term button");
+  --opacForm.RibbonPage:CreateButton("Import Terms",GetClientImage("ImportData32"),"ImportTerms","Import");
   opacForm.Browser.WebBrowser.ScriptErrorsSuppressed = true
   opacForm.TouInfo = opacForm.Form:CreateMemoEdit("TOU Info", "TOUInfo");
   opacForm.TouInfo.Value = "Fill in later"; 
@@ -54,9 +55,9 @@ function Init()
   processType = GetFieldValue("Transaction", "ProcessType");
   Log("Blacklight OPAC process type = " .. processType);
   if processType == "Lending" then
-    opacForm.Form:LoadLayout("BlacklightOPACLendlayout.xml");
+    opacForm.Form:LoadLayout("BlacklightOPACBorrowlayout.xml");
   elseif processType == "Doc Del" then
-    opacForm.Form:LoadLayout("BlacklightOPACLendlayout.xml");
+    opacForm.Form:LoadLayout("BlacklightOPACBorrowlayout.xml");
   else 
     opacForm.Form:LoadLayout("BlacklightOPACBorrowlayout.xml");
   end
@@ -196,13 +197,14 @@ function ImportTerms()
     Log("Blacklight OPAC tou url " .. url );
     local err,response = pcall( function ()  return wclient:DownloadString(url); end ); 
     outstr = outstr .. "\r\n***********************************\n\r"; 
-    --outstr = outstr .. "\r\r".. c .. "\n\r"; 
-    --outstr = outstr .. "\r\nerr = " .. tostring(err); 
+    outstr = outstr .. "\r\r".. c .. "\n\r"; 
+    outstr = outstr .. "\r\nerr = " .. tostring(err); 
+    Log("Blacklight OPAC tou possible error" .. outstr);
     Log("Blacklight OPAC response data: " .. response );
     local src= string.match(response, "<h3(.+)</h3>.* class=.description.");
-    Log("Blacklight OPAC src data: " .. src );
+    Log("Blacklight OPAC h4 data: " .. src );
     local desc = string.match(src,"<a.*>(.*)</a>");
-    Log("Blacklight OPAC desc data: " .. desc );
+    Log("Blacklight OPAC response data: " .. desc );
     outstr = outstr .. "\r\nSource:\t" .. desc; 
     local tab = string.match(response, '<table%s+class=".+">(.+)</table>');
     tab = string.gsub(tab,"<tr>","\n\r");
@@ -211,9 +213,7 @@ function ImportTerms()
     tab = string.gsub(tab,"</th>","");
     tab = string.gsub(tab,"<td>","\t");
     tab = string.gsub(tab,"</td>","");
-    tab = string.gsub(tab,"</tbody>","");
-    tab = string.gsub(tab,"</thead>","");
-    tab = string.gsub(tab,"<tbody>","");
+    tab = string.gsub(tab,"^    ","");
     outstr = outstr .. "\r\nLocal Terms of Use: " .. tab; 
 
   end
@@ -247,7 +247,7 @@ function ImportInfo()
   end
   for i=0,divs.Count - 1 do
     local elem = opacForm.Browser:GetElementByCollectionIndex(divs, i);
-    if elem.ParentNode ~= nil then
+    -- if elem.ParentNode ~= nil then
       if elem:GetAttribute("className")=="holding" then
         local holdRows = elem.Children; 
         Log("Blacklight OPAC Found " .. holdRows.Count .. " divs.");
@@ -256,11 +256,11 @@ function ImportInfo()
         local caltd = opacForm.Browser:GetElementByCollectionIndex(holdRows, 1);
         Log("Blacklight OPAC loc Text: " .. loctd.InnerText);
         Log("Blacklight OPAC cal Text: " .. caltd.InnerText);
-        locstr=string.sub(loctd.InnerText,1,string.len(loctd.InnerText)-12);
-        calstr=string.sub(caltd.InnerText,1,string.len(caltd.InnerText)-8);
-	break
+        locstr=string.sub(loctd.InnerText,1,string.len(loctd.InnerText)-8);
+        calstr=string.sub(caltd.InnerText,1,string.len(caltd.InnerText));
+	      break
       end 
-    end
+    -- end
   end
   --
   -- in the first holding div, there are two divs, class location, class call-number
