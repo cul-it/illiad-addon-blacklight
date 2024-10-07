@@ -46,25 +46,25 @@ function Init()
   opacForm.RibbonPage:CreateButton("Search Title",GetClientImage("Search32"),"SearchTitle", "Search");
   opacForm.RibbonPage:CreateButton("Import Info",GetClientImage("ImportData32"),"ImportInfo", "Import");
   opacForm.RibbonPage:CreateButton("Import as E-Resource",GetClientImage("ImportData32"),"ImportElectronic","Import");
-  Log("No longer loading the Import Term button");
-  --opacForm.RibbonPage:CreateButton("Import Terms",GetClientImage("ImportData32"),"ImportTerms","Import");
+  opacForm.RibbonPage:CreateButton("Open New Browser", GetClientImage("Web32"), "OpenInDefaultBrowser", "Utility");
   opacForm.Browser.WebBrowser.ScriptErrorsSuppressed = true
   opacForm.TouInfo = opacForm.Form:CreateMemoEdit("TOU Info", "TOUInfo");
   opacForm.TouInfo.Value = "Fill in later"; 
   opacForm.JournalInfo = opacForm.Form:CreateMemoEdit("Journal Info", "JournalInfo");
   processType = GetFieldValue("Transaction", "ProcessType");
-  Log("Blacklight OPAC process type = " .. processType);
-  if processType == "Lending" then
-    opacForm.Form:LoadLayout("BlacklightOPACBorrowlayout.xml");
-  elseif processType == "Doc Del" then
-    opacForm.Form:LoadLayout("BlacklightOPACBorrowlayout.xml");
-  else 
-    opacForm.Form:LoadLayout("BlacklightOPACBorrowlayout.xml");
-  end
+  opacForm.Form:LoadLayout("BlacklightOPACBorrowlayout.xml");
   opacForm.TouInfo.Value = "Fill in later:" .. processType; 
   opacForm.Form:Show();
   SearchTitle();
-  Log("FIRST DEBUG MESSAGE FROM Blacklight OPAC ");
+end
+
+-- Open New Browser button 
+function OpenInDefaultBrowser()
+  local currentUrl = opacForm.Browser.Address;
+  if (currentUrl and currentUrl ~= "") then
+      LogDebug("Opening Browser URL in default browser: " .. currentUrl);
+      os.execute('start "" "' .. currentUrl .. '"');
+  end
 end
 
 function SearchKeyword()
@@ -92,7 +92,6 @@ function SearchKeyword()
   end
   searchTerm = stripc(searchTerm,"/:");
   opacForm.Browser:RegisterPageHandler("formExists", "search-form", "OPACLoaded", false);
-  opacForm.Browser:RegisterPageHandler("custom", "TestOPACTerms", "OPAChasTerms", true);
   opacForm.Browser:Navigate(settings.OpacUrl);	
 end
 
@@ -122,102 +121,31 @@ function SearchTitle()
   end
   searchTerm = stripc(searchTerm,"/:");
   opacForm.Browser:RegisterPageHandler("formExists", "search-form", "OPACLoaded", false);
-  opacForm.Browser:RegisterPageHandler("custom", "TestOPACTerms", "OPAChasTerms", true);
   opacForm.Browser:Navigate(settings.OpacUrl);  
 end
 
+-- Called when the 'Search Author' button is clicked
+-- fetch author information from the transaction and then search the catalog for more items by that author
 function SearchAuthor()
   if GetFieldValue("Transaction", "RequestType") == "Loan" then
-    searchTerm = GetFieldValue("Transaction", "LoanTitle");
-    searchCode = "author/creator";
+    searchTerm = GetFieldValue("Transaction", "LoanAuthor");
   else
-    searchTerm = GetFieldValue("Transaction", "PhotoJournalTitle");
+    searchTerm = GetFieldValue("Transaction", "PhotoArticleAuthor");
     opacForm.JournalInfo.Value = searchTerm .. " " .. processType ; 
-    searchCode = "author/creator";
   end
+  searchCode = "author";
   searchTerm = stripc(searchTerm,"/:");
   opacForm.Browser:RegisterPageHandler("formExists", "search-form", "OPACLoaded", false);
-  opacForm.Browser:RegisterPageHandler("custom", "TestOPACTerms", "OPAChasTerms", true);
   opacForm.Browser:Navigate(settings.OpacUrl);  
-end
-
-function OPAChasNoTerms()
- Log("OPAC has No Terms ");
-end
-
-function OPAChasTerms()
- Log("OPAC has Terms ");
-  opacForm.Browser:RegisterPageHandler("custom", "TestOPACTerms", "OPAChasTerms", true);
- ImportTerms();
-end
-
-function TestOPACTerms()
-  opacForm.Browser:RegisterPageHandler("custom", "TestOPACTerms", "OPAChasTerms", true);
-  local obrowser = opacForm.Browser.WebBrowser;	
-  local otext = obrowser.DocumentText;
-  local y = string.find(otext, "/catalog/tou/%d+/%u+/%w+.>Terms");
-   if y == nil then 
-     Log("test OPAC terms : false " .. tostring(y));
-     opacForm.TouInfo.Value = "";
-     return false; 
-  else
-     Log("test OPAC terms : true " .. y);
-     return true; 
-  end
 end
 
 function OPACLoaded()
   Log("SearchTerm = " .. searchTerm );
-  Log("SearchCode = " .. searchCode );
+  Log("**** in OPAC LOADED SearchCode = " .. searchCode );
   opacForm.Browser:SetFormValue("search-form", "q", searchTerm);
   opacForm.Browser:SetFormValue("search-form", "search_field", searchCode);
   opacForm.Browser:SubmitForm("search-form");
 
-end
-
-function ImportTerms()
-  local obrowser = opacForm.Browser.WebBrowser;	
-  local otext = obrowser.DocumentText;
-  local n = 1;
-  local matches = {};
-  for w in string.gfind(otext, "/catalog/tou/%d+/%u+/%w+%\">Terms") do
-    local term  = {};
-    Log("Blacklight OPAC w = " .. w );
-    local id,m1,m2 = string.match(w, "/catalog/tou/(%d+)/(%u+)/(%w+)%\">Terms")
-    term.id = id;
-    term.m1 = m1;
-    term.m2 = m2;
-    matches[n] = term;  
-    n = n +1;
-  end
-  local outstr = "";
-  for c=1,#matches do
-    local term = matches[c];
-    local url = catalog_tou_url .. "/" .. term.id .. "/" .. term.m1 .. "/" .. term.m2;
-    Log("Blacklight OPAC tou url " .. url );
-    local err,response = pcall( function ()  return wclient:DownloadString(url); end ); 
-    outstr = outstr .. "\r\n***********************************\n\r"; 
-    outstr = outstr .. "\r\r".. c .. "\n\r"; 
-    outstr = outstr .. "\r\nerr = " .. tostring(err); 
-    Log("Blacklight OPAC tou possible error" .. outstr);
-    Log("Blacklight OPAC response data: " .. response );
-    local src= string.match(response, "<h3(.+)</h3>.* class=.description.");
-    Log("Blacklight OPAC h4 data: " .. src );
-    local desc = string.match(src,"<a.*>(.*)</a>");
-    Log("Blacklight OPAC response data: " .. desc );
-    outstr = outstr .. "\r\nSource:\t" .. desc; 
-    local tab = string.match(response, '<table%s+class=".+">(.+)</table>');
-    tab = string.gsub(tab,"<tr>","\n\r");
-    tab = string.gsub(tab,"</tr>","");
-    tab = string.gsub(tab,"<th>","\t");
-    tab = string.gsub(tab,"</th>","");
-    tab = string.gsub(tab,"<td>","\t");
-    tab = string.gsub(tab,"</td>","");
-    tab = string.gsub(tab,"^    ","");
-    outstr = outstr .. "\r\nLocal Terms of Use: " .. tab; 
-
-  end
-  opacForm.TouInfo.Value = outstr;
 end
 
 function ImportElectronic()
@@ -238,6 +166,10 @@ function ImportInfo()
   local locstr = "";
   local calstr = "";
   local doc_id = string.match(obrowser.DocumentText, "/catalog/(%d+)/citation");
+  if doc_id == nil then
+    -- Import Info btn was clicked on results page, not on item detail page, so skip import
+    return;
+  end
   -- the first table should not be the rare table.
   -- local detailsTable = opacForm.Browser:GetElementByCollectionIndex(document:GetElementsByTagName("table"), 0);
   local divs = document:GetElementsByTagName("div");
