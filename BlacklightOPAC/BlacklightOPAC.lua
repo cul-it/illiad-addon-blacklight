@@ -46,23 +46,25 @@ function Init()
   opacForm.RibbonPage:CreateButton("Search Title",GetClientImage("Search32"),"SearchTitle", "Search");
   opacForm.RibbonPage:CreateButton("Import Info",GetClientImage("ImportData32"),"ImportInfo", "Import");
   opacForm.RibbonPage:CreateButton("Import as E-Resource",GetClientImage("ImportData32"),"ImportElectronic","Import");
+  opacForm.RibbonPage:CreateButton("Open New Browser", GetClientImage("Web32"), "OpenInDefaultBrowser", "Utility");
   opacForm.Browser.WebBrowser.ScriptErrorsSuppressed = true
   opacForm.TouInfo = opacForm.Form:CreateMemoEdit("TOU Info", "TOUInfo");
   opacForm.TouInfo.Value = "Fill in later"; 
   opacForm.JournalInfo = opacForm.Form:CreateMemoEdit("Journal Info", "JournalInfo");
   processType = GetFieldValue("Transaction", "ProcessType");
-  Log("Blacklight OPAC process type = " .. processType);
-  if processType == "Lending" then
-    opacForm.Form:LoadLayout("BlacklightOPACBorrowlayout.xml");
-  elseif processType == "Doc Del" then
-    opacForm.Form:LoadLayout("BlacklightOPACBorrowlayout.xml");
-  else 
-    opacForm.Form:LoadLayout("BlacklightOPACBorrowlayout.xml");
-  end
+  opacForm.Form:LoadLayout("BlacklightOPACBorrowlayout.xml");
   opacForm.TouInfo.Value = "Fill in later:" .. processType; 
   opacForm.Form:Show();
   SearchTitle();
-  Log("FIRST DEBUG MESSAGE FROM Blacklight OPAC ");
+end
+
+-- Open New Browser button 
+function OpenInDefaultBrowser()
+  local currentUrl = opacForm.Browser.Address;
+  if (currentUrl and currentUrl ~= "") then
+      LogDebug("Opening Browser URL in default browser: " .. currentUrl);
+      os.execute('start "" "' .. currentUrl .. '"');
+  end
 end
 
 function SearchKeyword()
