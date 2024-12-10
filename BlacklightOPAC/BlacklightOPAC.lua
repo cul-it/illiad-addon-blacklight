@@ -150,8 +150,8 @@ end
 
 function ImportElectronic()
   local obrowser = opacForm.Browser.WebBrowser;
-  local doc_id = string.match(obrowser.DocumentText, "/catalog/(%d+)/citation");
-  SetFieldValue("Transaction", "Location", "Olin LIbrary");
+  local doc_id = string.match(obrowser.DocumentText, "/catalog/(%d+)/librarian_view");
+  SetFieldValue("Transaction", "Location", "Olin Library");
   SetFieldValue("Transaction", "CallNumber", "*Networked Resource");
   Log("Blacklight OPAC WebBrowser docid: " .. doc_id);
   SetFieldValue("Transaction","ItemInfo5",settings.OpacUrl .. "/catalog/" .. doc_id);
@@ -165,7 +165,7 @@ function ImportInfo()
   local url = obrowser.Url;
   local locstr = "";
   local calstr = "";
-  local doc_id = string.match(obrowser.DocumentText, "/catalog/(%d+)/citation");
+  local doc_id = string.match(obrowser.DocumentText, "/catalog/(%d+)/librarian_view");
   if doc_id == nil then
     -- Import Info btn was clicked on results page, not on item detail page, so skip import
     return;
