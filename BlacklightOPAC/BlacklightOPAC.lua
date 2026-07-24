@@ -159,10 +159,25 @@ function ImportElectronic()
   ExecuteCommand("SwitchTab", {"Detail"});
 end
 
+
+--- Import bibliographic details from the currently loaded Blacklight item page.
+---
+--- Behavior:
+--- 1. Reads the current catalog record id from the page HTML.
+--- 2. Finds the first element with class "holding".
+--- 3. Pulls location and call number from the element's data attributes:
+---    - data-location
+---    - data-call-number
+--- 4. Writes values to the active ILLiad transaction and stores the item URL in
+---    ItemInfo5 and the system clipboard.
+---
+--- Notes:
+--- - If the page is not a record detail page (no catalog id), the function exits.
+--- - If no holding element is found, the function returns false.
+--- - If multiple holdings exist, the first one is used.
 function ImportInfo()
   local obrowser = opacForm.Browser.WebBrowser;
   local document = obrowser.Document;
-  local url = obrowser.Url;
   local locstr = "";
   local calstr = "";
   local doc_id = string.match(obrowser.DocumentText, "/catalog/(%d+)/citation");
@@ -170,37 +185,20 @@ function ImportInfo()
     -- Import Info btn was clicked on results page, not on item detail page, so skip import
     return;
   end
-  -- the first table should not be the rare table.
-  -- local detailsTable = opacForm.Browser:GetElementByCollectionIndex(document:GetElementsByTagName("table"), 0);
-  local divs = document:GetElementsByTagName("div");
-  -- find the holding div
-  if divs == nil then
+
+  local holdings = document:GetElementsByClassName("holding");
+  if holdings == nil or holdings.Count == 0 then
     return false;
   end
-  for i=0,divs.Count - 1 do
-    local elem = opacForm.Browser:GetElementByCollectionIndex(divs, i);
-    -- if elem.ParentNode ~= nil then
-      if elem:GetAttribute("className")=="holding" then
-        local holdRows = elem.Children; 
-        Log("Blacklight OPAC Found " .. holdRows.Count .. " divs.");
-        Log("Blacklight OPAC Found text:'" .. elem.InnerText .. "'.");
-        local loctd = opacForm.Browser:GetElementByCollectionIndex(holdRows, 0);
-        local caltd = opacForm.Browser:GetElementByCollectionIndex(holdRows, 1);
-        Log("Blacklight OPAC loc Text: " .. loctd.InnerText);
-        Log("Blacklight OPAC cal Text: " .. caltd.InnerText);
-        locstr=string.sub(loctd.InnerText,1,string.len(loctd.InnerText)-8);
-        calstr=string.sub(caltd.InnerText,1,string.len(caltd.InnerText));
-	      break
-      end 
-    -- end
+  if holdings.Count > 1 then
+    Log("Blacklight OPAC: More than one holding found, using the first one.");
   end
-  --
-  -- in the first holding div, there are two divs, class location, class call-number
-  Log("Blacklight OPAC locstr Text: " .. locstr);
-  Log("Blacklight OPAC calstr Text: " .. calstr);
+  local holding = opacForm.Browser:GetElementByCollectionIndex(holdings, 0);
+  locstr = holding:GetAttribute("data-location") or "";
+  calstr = holding:GetAttribute("data-call-number") or "";
+
   SetFieldValue("Transaction", "Location", locstr);
   SetFieldValue("Transaction", "CallNumber", calstr);
-  Log("Blacklight OPAC WebBrowser docid: " .. doc_id);
   Clipboard.SetText(settings.OpacUrl .. "/catalog/" .. doc_id);
   SetFieldValue("Transaction","ItemInfo5",settings.OpacUrl .. "/catalog/" .. doc_id);
   ExecuteCommand("SwitchTab", {"Detail"});
