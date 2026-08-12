@@ -186,19 +186,35 @@ function ImportInfo()
     return;
   end
 
-  local holdings = document:GetElementsByClassName("holding");
-  if holdings == nil or holdings.Count == 0 then
+  -- scan div elements and match exact class token "holding".
+  local locationValue = "";
+  local callNumberValue = "";
+  local divs = document:GetElementsByTagName("div");
+
+  if divs ~= nil then
+    for i = 0, divs.Count - 1 do
+      local div = opacForm.Browser:GetElementByCollectionIndex(divs, i);
+      local className = div and div:GetAttribute("className") or "";
+      local paddedClassName = " " .. className .. " ";
+      if className ~= "" and string.find(paddedClassName, " holding ", 1, true) ~= nil then
+        locationValue = div:GetAttribute("data-location") or "";
+        callNumberValue = div:GetAttribute("data-callnumber") or "";
+
+        -- Prefer the first holding that has a value.
+        if locationValue ~= "" or callNumberValue ~= "" then
+          break;
+        end
+      end
+    end
+  end
+
+  if locationValue == "" or callNumberValue == "" then
+    Log("Blacklight OPAC: Could not find a holding with both data-location and data-callnumber.");
     return false;
   end
-  if holdings.Count > 1 then
-    Log("Blacklight OPAC: More than one holding found, using the first one.");
-  end
-  local holding = opacForm.Browser:GetElementByCollectionIndex(holdings, 0);
-  locstr = holding:GetAttribute("data-location") or "";
-  calstr = holding:GetAttribute("data-call-number") or "";
 
-  SetFieldValue("Transaction", "Location", locstr);
-  SetFieldValue("Transaction", "CallNumber", calstr);
+  SetFieldValue("Transaction", "Location", locationValue);
+  SetFieldValue("Transaction", "CallNumber", callNumberValue);
   Clipboard.SetText(settings.OpacUrl .. "/catalog/" .. doc_id);
   SetFieldValue("Transaction","ItemInfo5",settings.OpacUrl .. "/catalog/" .. doc_id);
   ExecuteCommand("SwitchTab", {"Detail"});
