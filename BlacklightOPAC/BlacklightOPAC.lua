@@ -152,7 +152,7 @@ end
 function ImportElectronic()
   local doc_id = string.match(tostring(opacForm.Browser.Address), "/catalog/(%d+)");
   if doc_id == nil then return; end
-  SetFieldValue("Transaction", "Location", "Olin LIbrary");
+  SetFieldValue("Transaction", "Location", "Olin Library");
   SetFieldValue("Transaction", "CallNumber", "*Networked Resource");
   Log("Blacklight OPAC WebBrowser docid: " .. doc_id);
   SetFieldValue("Transaction","ItemInfo5",settings.OpacUrl .. "/catalog/" .. doc_id);
