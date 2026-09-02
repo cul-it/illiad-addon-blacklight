@@ -1,10 +1,6 @@
 local settings = {}
 settings.OpacUrl = GetSetting("OPACURL");
-local catalog_tou_url = settings.OpacUrl .. "/catalog/tou";
--- need this temporarily.
---local catalog_tou_url = "http://newcatalog5.library.cornell.edu" .. "/catalog/tou";
------------------
---require "luanet"; -- do not need to do this -- already done by atlas lua add on environment?
+
 luanet.load_assembly("System");
 luanet.load_assembly("System.Windows");
 luanet.load_assembly("System.Windows.Forms");
@@ -18,7 +14,6 @@ local opacForm = {};
 opacForm.Form = nil;
 opacForm.RibbonPage = nil;
 opacForm.Browser = nil;
-opacForm.TouInfo = nil;
 opacForm.JournalInfo = nil;
 
 local searchTerm = nil;
@@ -37,9 +32,13 @@ function Init()
   -- Create a form
   opacForm.Form = interfaceMngr:CreateForm("Blacklight OPAC Search", "Script");
   -- Add a browser
-  opacForm.Browser=opacForm.Form:CreateBrowser("Blacklight OPAC Search","Blacklight Browser", "Blacklight OPAC Search");
+  LogDebug("\n");
+  LogDebug("\n\n==================== BLACKLIGHT OPAC INIT ====================\n");
+  -- WebView2 is Microsoft Edge based browser control supports bootstrap 5
+  opacForm.Browser = opacForm.Form:CreateBrowser("Blacklight OPAC Search", "Blacklight Browser", "Blacklight OPAC Search", "WebView2");
   -- Since we didn't create a ribbon explicitly before creating our browser, it will have created one using the name we passed the CreateBrowser method.  We can retrieve that one and add our buttons to it.
   opacForm.RibbonPage = opacForm.Form:GetRibbonPage("Blacklight OPAC Search");
+
   -- Create the search and import buttons.
   opacForm.RibbonPage:CreateButton("Search Author",GetClientImage("Search32"),"SearchAuthor","Search");
   opacForm.RibbonPage:CreateButton("Search Keyword",GetClientImage("Search32"),"SearchKeyword","Search");
@@ -47,13 +46,8 @@ function Init()
   opacForm.RibbonPage:CreateButton("Import Info",GetClientImage("ImportData32"),"ImportInfo", "Import");
   opacForm.RibbonPage:CreateButton("Import as E-Resource",GetClientImage("ImportData32"),"ImportElectronic","Import");
   opacForm.RibbonPage:CreateButton("Open New Browser", GetClientImage("Web32"), "OpenInDefaultBrowser", "Utility");
-  opacForm.Browser.WebBrowser.ScriptErrorsSuppressed = true
-  opacForm.TouInfo = opacForm.Form:CreateMemoEdit("TOU Info", "TOUInfo");
-  opacForm.TouInfo.Value = "Fill in later"; 
   opacForm.JournalInfo = opacForm.Form:CreateMemoEdit("Journal Info", "JournalInfo");
   processType = GetFieldValue("Transaction", "ProcessType");
-  opacForm.Form:LoadLayout("BlacklightOPACBorrowlayout.xml");
-  opacForm.TouInfo.Value = "Fill in later:" .. processType; 
   opacForm.Form:Show();
   SearchTitle();
 end
@@ -140,18 +134,25 @@ function SearchAuthor()
 end
 
 function OPACLoaded()
-  Log("SearchTerm = " .. searchTerm );
   Log("**** in OPAC LOADED SearchCode = " .. searchCode );
-  opacForm.Browser:SetFormValue("search-form", "q", searchTerm);
-  opacForm.Browser:SetFormValue("search-form", "search_field", searchCode);
-  opacForm.Browser:SubmitForm("search-form");
-
+  local jsTerm = searchTerm:gsub("\\", "\\\\"):gsub("'", "\\'");
+  local script = [[
+    (function() {
+      var form = document.getElementById('search-form') || document.forms['search-form'];
+      if (!form) return 'no form';
+      form.elements['q'].value = ']] .. jsTerm .. [[';
+      form.elements['search_field'].value = ']] .. searchCode .. [[';
+      form.submit();
+      return 'submitted';
+    })();
+  ]];
+  opacForm.Browser:ExecuteScript(script);
 end
 
 function ImportElectronic()
-  local obrowser = opacForm.Browser.WebBrowser;
-  local doc_id = string.match(obrowser.DocumentText, "/catalog/(%d+)/citation");
-  SetFieldValue("Transaction", "Location", "Olin LIbrary");
+  local doc_id = string.match(tostring(opacForm.Browser.Address), "/catalog/(%d+)");
+  if doc_id == nil then return; end
+  SetFieldValue("Transaction", "Location", "Olin Library");
   SetFieldValue("Transaction", "CallNumber", "*Networked Resource");
   Log("Blacklight OPAC WebBrowser docid: " .. doc_id);
   SetFieldValue("Transaction","ItemInfo5",settings.OpacUrl .. "/catalog/" .. doc_id);
@@ -163,44 +164,51 @@ end
 --- Import bibliographic details from the currently loaded Blacklight item page.
 ---
 --- Behavior:
---- 1. Reads the current catalog record id from the page HTML.
---- 2. Finds the first element with class "holding".
---- 3. Pulls location and call number from the element's data attributes:
+--- 1. Reads the current catalog record id from the browser's URL
+--- 2. Fetches the record page HTML over HTTP via WebClient
+--- 3. Finds the first element with class "holding".
+--- 4. Pulls location and call number from the element's data attributes:
 ---    - data-location
 ---    - data-call-number
---- 4. Writes values to the active ILLiad transaction and stores the item URL in
+--- 5. Writes values to the active ILLiad transaction and stores the item URL in
 ---    ItemInfo5 and the system clipboard.
 ---
 --- Notes:
---- - If the page is not a record detail page (no catalog id), the function exits.
+--- - If the page is not a record detail page (no catalog id in the URL), the function exits.
+--- - If the HTTP call fails, the function exits.
 --- - If no holding element is found, the function returns false.
 --- - If multiple holdings exist, the first one is used.
 function ImportInfo()
-  local obrowser = opacForm.Browser.WebBrowser;
-  local document = obrowser.Document;
-  local locstr = "";
-  local calstr = "";
-  local doc_id = string.match(obrowser.DocumentText, "/catalog/(%d+)/citation");
+  local currentUrl = tostring(opacForm.Browser.Address);
+  local doc_id = string.match(currentUrl, "/catalog/(%d+)");
   if doc_id == nil then
-    -- Import Info btn was clicked on results page, not on item detail page, so skip import
+    LogDebug("ImportInfo: no doc_id in URL - not a record detail page, skipping");
     return;
   end
 
-  local holdings = document:GetElementsByClassName("holding");
-  if holdings == nil or holdings.Count == 0 then
+  -- Fetch the record page HTML via WebClient (ExecuteScript does not return values with webview2 browser)
+  local ok, pageHtml = pcall(function()
+    return wclient:DownloadString(settings.OpacUrl .. "/catalog/" .. doc_id);
+  end);
+  if not ok then
+    LogDebug("ImportInfo: HTTP fetch failed: " .. tostring(pageHtml));
+    return;
+  end
+  pageHtml = tostring(pageHtml);
+
+  -- Parse first holding's data attributes (note: attribute is 'data-callnumber')
+  local locstr, calstr = string.match(pageHtml,
+    'class="holding"%s+data%-location="(.-)"%s+data%-callnumber="(.-)"');
+  if locstr == nil then
+    LogDebug("ImportInfo: no holding found in page HTML");
     return false;
   end
-  if holdings.Count > 1 then
-    Log("Blacklight OPAC: More than one holding found, using the first one.");
-  end
-  local holding = opacForm.Browser:GetElementByCollectionIndex(holdings, 0);
-  locstr = holding:GetAttribute("data-location") or "";
-  calstr = holding:GetAttribute("data-call-number") or "";
 
   SetFieldValue("Transaction", "Location", locstr);
   SetFieldValue("Transaction", "CallNumber", calstr);
   Clipboard.SetText(settings.OpacUrl .. "/catalog/" .. doc_id);
-  SetFieldValue("Transaction","ItemInfo5",settings.OpacUrl .. "/catalog/" .. doc_id);
+  SetFieldValue("Transaction", "ItemInfo5", settings.OpacUrl .. "/catalog/" .. doc_id);
+  LogDebug("ImportInfo: fields set, switching to Detail tab");
   ExecuteCommand("SwitchTab", {"Detail"});
 end
 
@@ -209,4 +217,3 @@ function Log(entry)
     LogDebug("----- " .. entry .. " -----");
   end
 end
-
