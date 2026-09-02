@@ -231,7 +231,7 @@
       <property name="MinSize">@3,Width=193@2,Height=24</property>
       <property name="ImageIndex">-1</property>
       <property name="TextLocation">Default</property>
-      <property name="TypeName">AtlasSystems.Scripting.UI.AddonControls.Browser</property>
+      <property name="TypeName">AtlasSystems.Scripting.UI.AddonControls.WebView2Browser</property>
       <property name="Visibility">Always</property>
       <property name="ControlName">Blacklight OPAC Search</property>
       <property name="ImageAlignment">MiddleLeft</property>

@@ -3,13 +3,16 @@
   xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <Name>Blacklight OPAC Search</Name>
   <Author>Nooogon,Inc.; updated by Rick Silterra, John Cline, Matthew Connolly, Sarah Chintomby</Author>
-  <Version>1.5.1</Version>
+  <Version>1.6</Version>
   <Active>True</Active>
   <Type>Addon</Type>
   <Description>Performs a Blacklight OPAC title search with option for a keyword search as well. Once on a results page, Import Info will copy the call number and location values.</Description>
   <Forms>
     <Form>FormRequest</Form>
   </Forms>
+  <Permissions>
+    <Permission>WebView2</Permission>
+  </Permissions>
   <Settings>
     <Setting name="OPACURL" value="http://catalog.library.cornell.edu" type="string">
       <Description>The URL for your Blacklight OPAC. (i.e. http://catalog.princeton.edu)</Description>
