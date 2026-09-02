@@ -204,8 +204,8 @@ function ImportInfo()
     return false;
   end
 
-  SetFieldValue("Transaction", "Location", locstr);
-  SetFieldValue("Transaction", "CallNumber", calstr);
+  SetFieldValue("Transaction", "Location", locationValue);
+  SetFieldValue("Transaction", "CallNumber", callNumberValue);
   Clipboard.SetText(settings.OpacUrl .. "/catalog/" .. doc_id);
   SetFieldValue("Transaction", "ItemInfo5", settings.OpacUrl .. "/catalog/" .. doc_id);
   LogDebug("ImportInfo: fields set, switching to Detail tab");
