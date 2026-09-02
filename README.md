@@ -22,6 +22,6 @@ In the ILLiad client `Manage Addons` window, find the Blacklight OPAC Search in 
 
 1. Open a request, click the Blacklight OPAC Search tab
 
-2. The browser should load the library catalog. The Search buttons in the ribbon will allow you to search for the item various ways from the information in the request details (Author, Keyword, Title). Once you are on an item record, the Import Info and Import as E-Resource buttons will switch you to the Details tab.
+2. The browser should load the library catalog. The Search buttons in the ribbon will allow you to search for the item various ways from the information in the request details (Author, Keyword, Title). Once you are on an item record, clicking the 'Import Info' or 'Import as E-Resource' buttons will switch you to the Details tab.
 
-3. In the details pane, the newlyt imported information will be highlighted in yellow. 
+3. In the details pane, the newly imported information will be highlighted in yellow. 
