@@ -10,4 +10,5 @@
 - Release notes file
 
 ### Removed
-- 2 unused layout xml files
+- No longer need the layout xml files, they were used for the old browser
+- Removed the TOU Info pane, not used

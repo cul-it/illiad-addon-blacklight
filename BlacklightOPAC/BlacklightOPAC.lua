@@ -1,10 +1,6 @@
 local settings = {}
 settings.OpacUrl = GetSetting("OPACURL");
-local catalog_tou_url = settings.OpacUrl .. "/catalog/tou";
--- need this temporarily.
---local catalog_tou_url = "http://newcatalog5.library.cornell.edu" .. "/catalog/tou";
------------------
---require "luanet"; -- do not need to do this -- already done by atlas lua add on environment?
+
 luanet.load_assembly("System");
 luanet.load_assembly("System.Windows");
 luanet.load_assembly("System.Windows.Forms");
@@ -18,7 +14,6 @@ local opacForm = {};
 opacForm.Form = nil;
 opacForm.RibbonPage = nil;
 opacForm.Browser = nil;
-opacForm.TouInfo = nil;
 opacForm.JournalInfo = nil;
 
 local searchTerm = nil;
@@ -51,12 +46,8 @@ function Init()
   opacForm.RibbonPage:CreateButton("Import Info",GetClientImage("ImportData32"),"ImportInfo", "Import");
   opacForm.RibbonPage:CreateButton("Import as E-Resource",GetClientImage("ImportData32"),"ImportElectronic","Import");
   opacForm.RibbonPage:CreateButton("Open New Browser", GetClientImage("Web32"), "OpenInDefaultBrowser", "Utility");
-  opacForm.TouInfo = opacForm.Form:CreateMemoEdit("TOU Info", "TOUInfo");
-  opacForm.TouInfo.Value = "Fill in later"; 
   opacForm.JournalInfo = opacForm.Form:CreateMemoEdit("Journal Info", "JournalInfo");
   processType = GetFieldValue("Transaction", "ProcessType");
-  opacForm.Form:LoadLayout("BlacklightOPACBorrowlayout.xml");
-  opacForm.TouInfo.Value = "Fill in later:" .. processType; 
   opacForm.Form:Show();
   SearchTitle();
 end
