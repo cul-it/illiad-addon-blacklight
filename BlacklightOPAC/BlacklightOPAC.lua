@@ -28,14 +28,22 @@ function stripc(str,chrs)
 end
 
 function Init()
+  LogDebug("\n");
+  LogDebug("\n\n==================== BLACKLIGHT OPAC INIT ====================\n");
   interfaceMngr = GetInterfaceManager();
   -- Create a form
   opacForm.Form = interfaceMngr:CreateForm("Blacklight OPAC Search", "Script");
-  -- Add a browser
-  LogDebug("\n");
-  LogDebug("\n\n==================== BLACKLIGHT OPAC INIT ====================\n");
-  -- WebView2 is Microsoft Edge based browser control supports bootstrap 5
+  opacForm.JournalInfo = opacForm.Form:CreateMemoEdit("Journal Info", "JournalInfo");
+
+  -- Add a browser, WebView2 is Microsoft Edge based browser control supports bootstrap 5
   opacForm.Browser = opacForm.Form:CreateBrowser("Blacklight OPAC Search", "Blacklight Browser", "Blacklight OPAC Search", "WebView2");
+  
+  -- Turn off accelerator keys so the browser doesn't hijack the Tab focus away from the addon tabs, a known issue with webview2 browser
+  local nativeBrowser = opacForm.Browser.Control or opacForm.Browser.WebBrowser;
+  if nativeBrowser and nativeBrowser.CoreWebView2 then
+    nativeBrowser.CoreWebView2.Settings.AreBrowserAcceleratorKeysEnabled = false;
+  end
+
   -- Since we didn't create a ribbon explicitly before creating our browser, it will have created one using the name we passed the CreateBrowser method.  We can retrieve that one and add our buttons to it.
   opacForm.RibbonPage = opacForm.Form:GetRibbonPage("Blacklight OPAC Search");
 
@@ -46,8 +54,10 @@ function Init()
   opacForm.RibbonPage:CreateButton("Import Info",GetClientImage("ImportData32"),"ImportInfo", "Import");
   opacForm.RibbonPage:CreateButton("Import as E-Resource",GetClientImage("ImportData32"),"ImportElectronic","Import");
   opacForm.RibbonPage:CreateButton("Open New Browser", GetClientImage("Web32"), "OpenInDefaultBrowser", "Utility");
-  opacForm.JournalInfo = opacForm.Form:CreateMemoEdit("Journal Info", "JournalInfo");
+
   processType = GetFieldValue("Transaction", "ProcessType");
+  opacForm.Form:LoadLayout("webview2formlayout.xml");
+
   opacForm.Form:Show();
   SearchTitle();
 end
@@ -115,7 +125,7 @@ function SearchTitle()
   end
   searchTerm = stripc(searchTerm,"/:");
   opacForm.Browser:RegisterPageHandler("formExists", "search-form", "OPACLoaded", false);
-  opacForm.Browser:Navigate(settings.OpacUrl);  
+  opacForm.Browser:Navigate(settings.OpacUrl);
 end
 
 -- Called when the 'Search Author' button is clicked
